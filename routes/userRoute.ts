@@ -12,7 +12,8 @@ router.post("/resetPasswordOtp",userRoutesController.resetPasswordOtp)
 router.post("/resetPassword",userRoutesController.resetPassword)
 router.get("/searchUser",middleware.verifyToken,userRoutesController.searchUser)
 router.post("/host-tournament",middleware.verifyToken,userRoutesController.hostTournament)
-
+router.get("/get-room-id",middleware.verifyToken,userRoutesController.getRoomId)
+router.get("/get-tournaments",middleware.verifyToken,userRoutesController.getTournaments)
 
 
 

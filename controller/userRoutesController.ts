@@ -112,6 +112,33 @@ async hostTournament(req:any,res:Response){
         res.sendStatus(500);
       }
   }
+
+  getRoomId(req:Request,res:Response){
+    try{
+      let roomId = handler.getRoomId();
+      if(roomId){
+        res.status(200).send({roomId});
+      }else{
+        res.sendStatus(500)
+      }
+    }catch(err){
+      console.log(err);
+      res.sendStatus(500)
+    }
+  }
+ async getTournaments(req:any,res:Response){
+    try{
+      let tournaments =await handler.getTournament(req._id,req.query.limit);
+      if(tournaments){
+        res.status(200).send({tournaments});
+      }else{
+        res.sendStatus(500)
+      }
+    }catch(err){
+      console.log(err);
+      res.sendStatus(500)
+    }
+  }
 }
 
 export default new Controller();

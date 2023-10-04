@@ -7,6 +7,7 @@ dotenv.config();
 
 const map = new Map();
 const reset = new Map();
+const rooms:number[] = []
 
 interface signup {
   fullName: string;
@@ -119,10 +120,13 @@ class Handler {
         hostId = await model.hostTournament({
           admin: data.id,
           head: data.head,
+          joined:[user._id],
           description: data?.description,
           limit: data.limit,
           type: data.type,
+          viewers:0,
           instant: data.instant,
+          view:data?.view || false,
         });
       } else {
         const date = new Date(data?.date);
@@ -173,6 +177,28 @@ class Handler {
       return true;
     } catch (err) {
       console.log(err);
+      return false;
+    }
+  }
+  getRoomId(){
+    try{
+      while(true){
+        const roomId = Math.floor(10000000 + Math.random() * 900000000);
+        if(!rooms.includes(roomId)){
+          rooms.push(roomId);
+          return roomId;
+        }
+      }
+    }catch(err){
+      return false;
+    }
+  }
+ async getTournament(id:string,limit:number){
+    try{
+    const data = await model.getTournaments(id,limit)
+    return data
+    }catch(err){
+      console.log(err)
       return false;
     }
   }

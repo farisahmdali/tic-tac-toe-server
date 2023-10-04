@@ -7,7 +7,7 @@ class Middleware {
             
       if (req.headers.authorization) {
         const {_id}:any = jwt.verify(req.headers.authorization, process.env.KEY + "");
-        console.log(_id);
+        console.log(_id,"auth");
         
         req._id = _id;
         next();

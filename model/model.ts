@@ -80,13 +80,29 @@ class Model {
   }
 
   async hostTournament(data: any) {
-    data.admin =new ObjectId(data.admin)
-   let res = await getDb()?.collection("hostedTournaments").insertOne(data);
-   return res?.insertedId
+    data.admin = new ObjectId(data.admin);
+    let res = await getDb()?.collection("hostedTournaments").insertOne(data);
+    return res?.insertedId;
   }
 
-  async addNotificationTournamentInvitation(email:string,hostId:string){
-    getDb()?.collection("users").updateOne({email},{$addToSet:{invitedTournamet:hostId}})
+  async addNotificationTournamentInvitation(email: string, hostId: string) {
+    getDb()
+      ?.collection("users")
+      .updateOne({ email }, { $addToSet: { invitedTournamet: hostId } });
+  }
+
+  async getTournaments(id: string | any, limit:number) {
+    id = new ObjectId(id);
+    console.log(id,parseInt(limit+""));
+    let res = await getDb()
+      ?.collection("hostedTournaments")
+      .find({ admin: { $ne: id } })
+      .skip(parseInt(limit+""))
+      .limit(parseInt(limit+"")+50)
+      .toArray();
+    console.log(res);
+
+    return res;
   }
 }
 
