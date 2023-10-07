@@ -139,6 +139,16 @@ async hostTournament(req:any,res:Response){
       res.sendStatus(500)
     }
   }
+
+  async getOpponentDetails(req:Request,res:Response){
+    try{
+      let user = await handler.getOpponentDetails(req.query.email+"")
+      res.status(200).send({user})
+    }catch(err){
+      console.log(err);
+      res.sendStatus(500)
+    }
+  }
 }
 
 export default new Controller();

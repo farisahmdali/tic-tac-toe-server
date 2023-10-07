@@ -202,6 +202,17 @@ class Handler {
       return false;
     }
   }
+
+  async getOpponentDetails(email:string){
+    try{
+      const user:any =await model.getUser(email)
+      delete user.password
+      return user
+      }catch(err){
+        console.log(err)
+        return false;
+      }
+  }
 }
 
 export default new Handler();

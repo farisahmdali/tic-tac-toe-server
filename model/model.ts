@@ -3,8 +3,8 @@ import { getDb } from "../connections/mongodbConnection";
 import nodemailer from "nodemailer";
 
 class Model {
-  getUser(email: string) {
-    return getDb()?.collection("users").findOne({ email });
+  async getUser(email: string) {
+    return await getDb()?.collection("users").findOne({ email });
   }
 
   async save(data: Object) {
