@@ -53,10 +53,10 @@ export default function handleSocket(socket: Socket) {
 
   socket.on("start-playing-local", ({ index, player }) => {
     try {
-        console.log(gamePlay[localRoomUsers?.get(socket.id)])
-      if (!gamePlay[localRoomUsers?.get(socket.id)] && player==="X") {
+      console.log(gamePlay[localRoomUsers?.get(socket.id)]);
+      if (!gamePlay[localRoomUsers?.get(socket.id)] ) {
         gamePlay[localRoomUsers?.get(socket.id)] = {
-          currentPlayer: "O",
+          currentPlayer:player==="X" ? "O" : "X",
           play: [],
         };
         console.log(gamePlay[localRoomUsers?.get(socket.id)]);
@@ -83,8 +83,6 @@ export default function handleSocket(socket: Socket) {
       console.log(err);
     }
   });
-
-
 
   socket.on("i-won-local-match", () => {
     socket
@@ -117,17 +115,41 @@ export default function handleSocket(socket: Socket) {
     try {
       gamePlay[localRoomUsers?.get(socket.id)].play = [""];
       if (!gamePlay[localRoomUsers?.get(socket.id)]?.round) {
-        gamePlay[localRoomUsers?.get(socket.id)] = { play:[],currentPlayer:gamePlay[localRoomUsers?.get(socket.id)].currentPlayer,round: 2 };
+        gamePlay[localRoomUsers?.get(socket.id)] = {
+          play: [],
+          currentPlayer: gamePlay[localRoomUsers?.get(socket.id)].currentPlayer,
+          round: 2,
+        };
       } else {
         gamePlay[localRoomUsers?.get(socket.id)].round =
           gamePlay[localRoomUsers?.get(socket.id)].round + 1;
       }
-
-      socket.to(localRoomUsers.get(socket.id)).emit(
-        "next-round-local",
-        gamePlay[localRoomUsers?.get(socket.id)].round)
+      if (gamePlay[localRoomUsers?.get(socket.id)]?.round > 3) {
+        socket.to(localRoomUsers.get(socket.id)).emit("local-game-finished");
+      } else {
+        socket
+          .to(localRoomUsers.get(socket.id))
+          .emit(
+            "next-round-local",
+            gamePlay[localRoomUsers?.get(socket.id)].round
+          );
+      }
     } catch (err) {
       console.log(err);
     }
   });
+
+  socket.on("draw-local", () => {
+    
+    socket.to(localRoomUsers.get(socket.id)).emit("draw-local");
+  });
+  socket.on("local-game-finished", () => {
+    
+    socket.to(localRoomUsers.get(socket.id)).emit("local-game-finished-end");
+  });
+
+  socket.on("disconnect", ()=>{
+    console.log("disconnect",socket.id)
+    socket.to(localRoomUsers.get(socket.id)).emit("user-quit")
+  })
 }
