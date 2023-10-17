@@ -10,6 +10,7 @@ const setOpponent = new Map();
 const idtodata = new Map();
 const opponent: any = {};
 const tournamentGroup = new Map();
+const score = new Map();
 
 export default function handleSocket(socket: Socket) {
   console.log("user connected with id  " + socket.id);
@@ -273,45 +274,43 @@ export default function handleSocket(socket: Socket) {
     callback(gamePlay[localRoomUsers.get(socket.id)]?.round1?.matchs);
   });
   socket.on("start-tournament", () => {
-
     const data = gamePlay[localRoomUsers.get(socket.id)]?.round1?.matchs;
     let room = localRoomUsers.get(socket.id);
-    console.log(room)
+    console.log(room);
     for (let i = 0; i < data?.length; i++) {
       if (
         data[i][0].email === idtodata.get(socket.id).email ||
         data[i][1].email === idtodata.get(socket.id).email
       ) {
-        room = room + "group"+i;
+        room = room + "group" + i;
       }
     }
-    console.log(room)
+    console.log(room);
     socket.join(room);
     tournamentGroup.set(socket.id, room);
   });
 
   socket.on("start-game", ({}, callback) => {
-    try{
-
+    try {
       const data = gamePlay[localRoomUsers.get(socket.id)]?.round1?.matchs;
-      let type="";
+      let type = "";
       for (let i = 0; i < data?.length; i++) {
         if (data[i][0].email === idtodata.get(socket.id).email) {
           type = "X";
         } else if (data[i][1].email === idtodata.get(socket.id).email) {
-        type = "O";
+          type = "O";
+        }
       }
+      callback(type);
+      socket.to(tournamentGroup?.get(socket.id)).emit('start-game')
+    } catch (err) {
+      console.log(err);
     }
-    callback(type);
-  }catch(err){
-    console.log(err);
-    
-  }
   });
 
-  socket.on("playing",({index,player})=>{
+  socket.on("playing", ({ index, player }) => {
     try {
-      console.log(gamePlay[tournamentGroup?.get(socket.id)],socket.rooms);
+      console.log(gamePlay[tournamentGroup?.get(socket.id)], socket.rooms);
       if (!gamePlay[tournamentGroup?.get(socket.id)]) {
         gamePlay[tournamentGroup?.get(socket.id)] = {
           currentPlayer: player === "X" ? "O" : "X",
@@ -340,5 +339,59 @@ export default function handleSocket(socket: Socket) {
     } catch (err) {
       console.log(err);
     }
-  })
+  });
+
+  socket.on("i-won", (data) => {
+    try {
+      socket.to(tournamentGroup.get(socket.id)).emit("i-won", {
+        gamePlay: gamePlay[tournamentGroup?.get(socket.id)].play,
+        current: gamePlay[tournamentGroup?.get(socket.id)].currentPlayer,
+      });
+      gamePlay[tournamentGroup?.get(socket.id)].play = [];
+    } catch (err) {
+      console.log(err);
+    }
+  });
+
+  socket.on("switch-player", () => {
+    try {
+      if (!localRoomSwitchUser[tournamentGroup.get(socket.id)]) {
+        console.log("hello");
+        localRoomSwitchUser[tournamentGroup.get(socket.id)] = [socket.id];
+      } else {
+        localRoomSwitchUser[tournamentGroup.get(socket.id)].push(socket.id);
+        if (localRoomSwitchUser[tournamentGroup.get(socket.id)]?.length >= 2) {
+          localRoomSwitchUser[tournamentGroup.get(socket.id)] = [];
+          if (
+            gamePlay[tournamentGroup?.get(socket.id)]?.currentPlayer === "X"
+          ) {
+            gamePlay[tournamentGroup?.get(socket.id)].currentPlayer = "O";
+          } else {
+            gamePlay[tournamentGroup?.get(socket.id)].currentPlayer = "X";
+          }
+        }
+      }
+    } catch (err) {
+      console.log(err, "heee");
+    }
+  });
+  socket.on("next-round", () => {
+    try{
+
+      gamePlay[tournamentGroup?.get(socket.id)] = {
+        play: [],
+      current: gamePlay[tournamentGroup?.get(socket.id)].currentPlayer,
+      round: gamePlay[tournamentGroup?.get(socket.id)]?.round
+        ? gamePlay[tournamentGroup?.get(socket.id)].round + 1
+        : 1,
+    };
+    if(gamePlay[tournamentGroup?.get(socket.id)]?.round >3){
+      socket.emit("round-finished")
+    }else{
+      socket.emit("next-round")
+    }
+  }catch(err){
+    console.log(err);
+  }
+  });
 }
