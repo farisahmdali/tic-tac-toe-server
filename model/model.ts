@@ -15,11 +15,9 @@ class Model {
   }
 
   async getUserById(id: string) {
-    console.log(id, new ObjectId(id));
     const res = await getDb()
       ?.collection("users")
       .findOne({ _id: new ObjectId(id) });
-    console.log(res);
     return res;
   }
 
@@ -74,7 +72,6 @@ class Model {
       ])
       .toArray()
       .catch((err) => console.log(err));
-    console.log(res);
 
     return res;
   }
@@ -91,18 +88,117 @@ class Model {
       .updateOne({ email }, { $addToSet: { invitedTournamet: hostId } });
   }
 
-  async getTournaments(id: string | any, limit:number) {
+  async getTournaments(id: string | any, limit: number) {
     id = new ObjectId(id);
-    console.log(id,parseInt(limit+""));
     let res = await getDb()
       ?.collection("hostedTournaments")
-      .find({ admin: { $ne: id } })
-      .skip(parseInt(limit+""))
-      .limit(parseInt(limit+"")+50)
+      .find({
+        save: { $ne: id },
+        $where: function () {
+          return this.joined.length < this.limit;
+        },
+      })
+      .skip(parseInt(limit + ""))
+      .limit(parseInt(limit + "") + 50)
       .toArray();
-    console.log(res);
 
     return res;
+  }
+
+  async getMyTournamentsAndJoinedTournaments(id: string | any) {
+    try {
+      id = new ObjectId(id);
+      let res = await getDb()
+        ?.collection("hostedTournaments")
+        .find({ $or: [{ admin: id }, { save: id }] })
+        .toArray();
+
+      return res;
+    } catch (err) {
+      console.log(err);
+      return false;
+    }
+  }
+
+  async getTournmentDetails(tournamentId: string | any) {
+    try {
+      tournamentId = new ObjectId(tournamentId);
+      return await getDb()
+        ?.collection("hostedTournaments")
+        .findOne({ _id: tournamentId });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async joinTournament(user: object | any, tournamentId: string | any) {
+    try {
+      user._id = new ObjectId(user._id);
+      tournamentId = new ObjectId(tournamentId);
+      getDb()
+        ?.collection("hostedTournaments")
+        .updateOne({ _id: tournamentId }, { $addToSet: { joined: user } });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+  async saveTournament(id: string | ObjectId, tournamentId: string | any) {
+    try {
+      id = new ObjectId(id);
+      tournamentId = new ObjectId(tournamentId);
+      getDb()
+        ?.collection("hostedTournaments")
+        .updateOne({ _id: tournamentId }, { $addToSet: { save: id } });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async leftTournament(user: string | any, tournamentId: string | any) {
+    try {
+      user._id = new ObjectId(user._id);
+      tournamentId = new ObjectId(tournamentId);
+      getDb()
+        ?.collection("hostedTournaments")
+        .updateOne({ _id: tournamentId }, { $pull: { joined: user } });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async RequestJoinTournament(id: string | any, tournamentId: string | any) {
+    try {
+      id = new ObjectId(id);
+      tournamentId = new ObjectId(tournamentId);
+      getDb()
+        ?.collection("hostedTournaments")
+        .updateOne({ _id: tournamentId }, { $addToSet: { req: id } });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async getTournmentDetailsWithUsers(
+    id: string | any,
+    tournamentId: string | any
+  ) {
+    try {
+      id = new ObjectId(id);
+      tournamentId = new ObjectId(tournamentId);
+      let res: any = await getDb()
+        ?.collection("hostedTournaments")
+        .findOne({ admin: id, _id: tournamentId });
+      return res;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+  startTournament(id: string | ObjectId) {
+    id = new ObjectId(id);
+
+    getDb()
+      ?.collection("hostedTournaments")
+      .updateOne({ _id: id }, { $set: { Started: true } });
   }
 }
 

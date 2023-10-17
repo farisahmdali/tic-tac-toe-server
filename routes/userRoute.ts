@@ -15,6 +15,9 @@ router.post("/host-tournament",middleware.verifyToken,userRoutesController.hostT
 router.get("/get-room-id",middleware.verifyToken,userRoutesController.getRoomId)
 router.get("/get-tournaments",middleware.verifyToken,userRoutesController.getTournaments)
 router.get("/get-opponent-details",middleware.verifyToken,userRoutesController.getOpponentDetails)
+router.get("/get-my-tournaments",middleware.verifyToken,userRoutesController.getMyTournament)
+router.post("/save-tournaments",middleware.verifyToken,userRoutesController.saveTournament)
+router.get("/get-tournament-details",middleware.verifyToken,userRoutesController.getTournamentDetails)
 
 
 

@@ -5,14 +5,15 @@ import cors from "cors"
 import morgan from "morgan"
 import {Server} from "socket.io"
 import http from "http"
-import Socket from "../sockets/sockets";
+import   handleSocket  from "../sockets/sockets";
 let io
+
 export const createServer = ()=>{
     dotenv.config()
     const app = express();
     const server = http.createServer(app);
      io = new Server(server,{cors:{origin: "*"}});
-    io.on('connection',Socket)
+    io.on('connection',handleSocket)
     app.use(express.json());
     app.use(cors({origin:"*"}));
     app.use(morgan("dev"));

@@ -112,7 +112,6 @@ class Handler {
   async hostTournament(data: any) {
     try {
       const user: any = await model.getUserById(data.id);
-      console.log(user, data);
       let hostId: any;
       const invite = data?.invite;
       delete data?.invite;
@@ -120,7 +119,6 @@ class Handler {
         hostId = await model.hostTournament({
           admin: data.id,
           head: data.head,
-          joined:[user._id],
           description: data?.description,
           limit: data.limit,
           type: data.type,
@@ -174,7 +172,7 @@ class Handler {
         model.sendMail(message, x, "Tic-Tac-Toe");
         model.addNotificationTournamentInvitation(x,hostId)
       });
-      return true;
+      return hostId;
     } catch (err) {
       console.log(err);
       return false;
@@ -212,6 +210,39 @@ class Handler {
         console.log(err)
         return false;
       }
+  }
+
+  async getMyTournaments(id:string){
+    try{
+      const user:any =await model.getMyTournamentsAndJoinedTournaments(id)
+      delete user.password
+      return user
+      }catch(err){
+        console.log(err)
+        return false;
+      }
+  }
+  async saveTournaments(id:string,tournamentId:string){
+    try{
+      const res:any =await model.getTournmentDetails(tournamentId)
+      if(res?.type==="public"){
+         model.saveTournament(id,tournamentId)
+      }
+      
+      }catch(err){
+        console.log(err)
+      }
+  }
+
+  async getTournamentDetails(id:string,tournamentId:string){
+    try{
+      const res:any =await model.getTournmentDetails(tournamentId)
+      return res
+    }catch(err){
+      console.log(err);
+      return false
+      
+    }
   }
 }
 

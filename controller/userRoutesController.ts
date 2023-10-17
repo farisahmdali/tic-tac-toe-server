@@ -34,7 +34,6 @@ class Controller {
 
   async getUser(req: Request | any, res: Response) {
     try {
-      console.log(req._id);
       let user = await handler.getUser(req._id);
       res.status(200).send({ user });
     } catch (err) {
@@ -77,7 +76,11 @@ class Controller {
   }
   async resetPassword(req: Request, res: Response) {
     try {
-      let val = await handler.resetPassword(req.body.email,req.body.password,req.body.otp);
+      let val = await handler.resetPassword(
+        req.body.email,
+        req.body.password,
+        req.body.otp
+      );
       if (val) {
         res.sendStatus(200);
       } else {
@@ -88,65 +91,98 @@ class Controller {
       res.sendStatus(500);
     }
   }
-  async searchUser(req: Request, res: Response){
-    try{
-    let user = await  handler.searchUser(req.query.word+"")
-    res.status(200).send({user})
-    }catch (err) {
+  async searchUser(req: Request, res: Response) {
+    try {
+      let user = await handler.searchUser(req.query.word + "");
+      res.status(200).send({ user });
+    } catch (err) {
       console.log(err);
       res.sendStatus(500);
     }
   }
 
-async hostTournament(req:any,res:Response){
-    try{
-      const valid = await handler.hostTournament({id:req._id,...req.body})
-      if(valid){
-        res.sendStatus(200)
-      }else{
-        console.log("error")
-        res.sendStatus(403)
+  async hostTournament(req: any, res: Response) {
+    try {
+      const valid = await handler.hostTournament({ id: req._id, ...req.body });
+      if (valid) {
+        res.status(200).send(valid);
+      } else {
+        console.log("error");
+        res.sendStatus(403);
       }
-      }catch (err) {
-        console.log(err);
+    } catch (err) {
+      console.log(err);
+      res.sendStatus(500);
+    }
+  }
+
+  getRoomId(req: Request, res: Response) {
+    try {
+      let roomId = handler.getRoomId();
+      if (roomId) {
+        res.status(200).send({ roomId });
+      } else {
         res.sendStatus(500);
       }
-  }
-
-  getRoomId(req:Request,res:Response){
-    try{
-      let roomId = handler.getRoomId();
-      if(roomId){
-        res.status(200).send({roomId});
-      }else{
-        res.sendStatus(500)
-      }
-    }catch(err){
+    } catch (err) {
       console.log(err);
-      res.sendStatus(500)
+      res.sendStatus(500);
     }
   }
- async getTournaments(req:any,res:Response){
-    try{
-      let tournaments =await handler.getTournament(req._id,req.query.limit);
-      if(tournaments){
-        res.status(200).send({tournaments});
-      }else{
-        res.sendStatus(500)
+  async getTournaments(req: any, res: Response) {
+    try {
+      let tournaments = await handler.getTournament(req._id, req.query.limit);
+      if (tournaments) {
+        res.status(200).send({ tournaments });
+      } else {
+        res.sendStatus(500);
       }
-    }catch(err){
+    } catch (err) {
       console.log(err);
-      res.sendStatus(500)
+      res.sendStatus(500);
     }
   }
 
-  async getOpponentDetails(req:Request,res:Response){
-    try{
-      let user = await handler.getOpponentDetails(req.query.email+"")
-      res.status(200).send({user})
-    }catch(err){
+  async getOpponentDetails(req: Request, res: Response) {
+    try {
+      let user = await handler.getOpponentDetails(req.query.email + "");
+      res.status(200).send({ user });
+    } catch (err) {
       console.log(err);
-      res.sendStatus(500)
+      res.sendStatus(500);
+    }
+  }
+
+  async getMyTournament(req: Request | any, res: Response) {
+    try {
+      let user = await handler.getMyTournaments(req._id);
+  
+      res.status(200).send({ user });
+    } catch (err) {
+      console.log(err);
+      res.sendStatus(500);
+    }
+  }
+
+  saveTournament(req: Request | any, res: Response) {
+    try {
+      handler.saveTournaments(req._id, req.body.tournamentId);
+      res.sendStatus(200);
+    } catch (err) {
+      console.log(err);
+      res.sendStatus(500);
+    }
+  }
+  async getTournamentDetails(req: Request | any, res: Response) {
+    try {
+      const data = await handler.getTournamentDetails(
+        req._id,
+        req.query.tournamentId
+      );
+      res.status(200).send(data)
+    } catch (err) {
+      console.log(err);
+      res.sendStatus(500);
     }
   }
 }
