@@ -11,6 +11,9 @@ const idtodata = new Map();
 const opponent: any = {};
 const tournamentGroup = new Map();
 const score = new Map();
+const goldenGame: any = {};
+const tournamentUserOnline: any = {};
+const condition: any = {};
 
 export default function handleSocket(socket: Socket) {
   console.log("user connected with id  " + socket.id);
@@ -247,14 +250,53 @@ export default function handleSocket(socket: Socket) {
       console.log(err);
     }
   });
+
+  socket.on("user-online", ({}, callback) => {
+    try {
+      if (tournamentUserOnline[localRoomUsers.get(socket.id)]?.online) {
+        tournamentUserOnline[localRoomUsers.get(socket.id)].online.push(
+          idtodata.get(socket.id)?.email
+        );
+      } else {
+        tournamentUserOnline[localRoomUsers.get(socket.id)] = {
+          online: [idtodata.get(socket.id)?.email],
+        };
+      }
+      callback(tournamentUserOnline[localRoomUsers.get(socket.id)].online);
+      socket
+        .to(localRoomUsers.get(socket.id))
+        .emit(
+          "user-online",
+          tournamentUserOnline[localRoomUsers.get(socket.id)].online
+        );
+    } catch (err) {
+      console.log(err);
+    }
+  });
+
+  socket.on("user-offline", () => {
+    try {
+      const data = tournamentUserOnline[localRoomUsers.get(socket.id)].online;
+
+      const index = data.indexOf(idtodata.get(socket.id).email);
+
+      if (index !== -1) {
+        data.splice(index);
+      }
+
+      tournamentUserOnline[localRoomUsers.get(socket.id)].online = data;
+    } catch (err) {
+      console.log(err);
+    }
+  });
+
   socket.on("confirm-tournament", () => {
-    model.getTournaments;
+    delete tournamentUserOnline[localRoomUsers.get(socket.id)];
     gamePlay[localRoomUsers.get(socket.id)] = {
       confirm: true,
-      round1: {
-        members: roomMembers[localRoomUsers.get(socket.id)],
-        matchs: [],
-      },
+      members: roomMembers[localRoomUsers.get(socket.id)],
+      matchs: [],
+      round: 1,
     };
     let j = 0;
     for (
@@ -262,7 +304,7 @@ export default function handleSocket(socket: Socket) {
       i < roomMembers[localRoomUsers.get(socket.id)].length;
       i += 2
     ) {
-      gamePlay[localRoomUsers.get(socket.id)].round1.matchs[j] = [
+      gamePlay[localRoomUsers.get(socket.id)].matchs[j] = [
         roomMembers[localRoomUsers.get(socket.id)][i],
         roomMembers[localRoomUsers.get(socket.id)][i + 1],
       ];
@@ -271,28 +313,115 @@ export default function handleSocket(socket: Socket) {
   });
 
   socket.on("get-matchs-tournament", ({}, callback) => {
-    callback(gamePlay[localRoomUsers.get(socket.id)]?.round1?.matchs);
-  });
-  socket.on("start-tournament", () => {
-    const data = gamePlay[localRoomUsers.get(socket.id)]?.round1?.matchs;
-    let room = localRoomUsers.get(socket.id);
-    console.log(room);
-    for (let i = 0; i < data?.length; i++) {
-      if (
-        data[i][0].email === idtodata.get(socket.id).email ||
-        data[i][1].email === idtodata.get(socket.id).email
+    if (gamePlay[localRoomUsers.get(socket.id)]?.round === 1) {
+      callback(gamePlay[localRoomUsers.get(socket.id)]?.matchs);
+    } else if (gamePlay[localRoomUsers.get(socket.id)]?.round === 2) {
+      const winners = [];
+      const losers = [];
+      console.log(gamePlay[localRoomUsers.get(socket.id)]);
+      for (
+        let i = 0;
+        i < roomMembers[localRoomUsers.get(socket.id)]?.length;
+        i++
       ) {
-        room = room + "group" + i;
+        let s = roomMembers[localRoomUsers.get(socket.id)][i];
+        if (gamePlay[localRoomUsers.get(socket.id)][s.email] === 1) {
+          winners.push(s);
+        } else {
+          losers.push(s);
+        }
+      }
+      console.log(winners, losers, "winners and losers");
+      gamePlay[localRoomUsers.get(socket.id)].matchs = [];
+      for (let i = 0; i < winners?.length; i += 2) {
+        gamePlay[localRoomUsers.get(socket.id)].matchs?.push([
+          winners[i],
+          winners[i + 1],
+        ]);
+      }
+      for (let i = 0; i < losers?.length; i += 2) {
+        gamePlay[localRoomUsers.get(socket.id)].matchs?.push([
+          losers[i],
+          losers[i + 1],
+        ]);
+      }
+    } else if (gamePlay[localRoomUsers.get(socket.id)]?.round === 3) {
+      gamePlay[localRoomUsers.get(socket.id)].matchs = [];
+      if (roomMembers[localRoomUsers.get(socket.id)]?.length === 4) {
+        for (
+          let i = 0;
+          i < roomMembers[localRoomUsers.get(socket.id)]?.length;
+          i++
+        ) {
+          let s = roomMembers[localRoomUsers.get(socket.id)][i];
+          if (gamePlay[localRoomUsers.get(socket.id)][s.email] === 2) {
+            model.reachedFinal(s, localRoomUsers.get(socket.id));
+            socket.to(UserToId.get(s.email)).emit("final")
+            gamePlay[localRoomUsers.get(socket.id)] = { final: [s] };
+          } else if (gamePlay[localRoomUsers.get(socket.id)][s.email] === 1) {
+            model.reachedSemiFinal(s, localRoomUsers.get(socket.id));
+            gamePlay[localRoomUsers.get(socket.id)]?.matchs[0].push(s);
+          } else if(idtodata.get(socket.id)?.email===s?.email){
+            socket.to(socket.id).emit("loser");
+            roomMembers[localRoomUsers.get(UserToId.get(s.email))].splice(i);
+            socket.leave(localRoomUsers.get(UserToId.get(s.email)));
+            model.leftTournament(s, localRoomUsers.get(UserToId.get(s.email)));
+            localRoomUsers.delete(UserToId.get(s.email));
+          }
+        }
+      }
+    } else if (gamePlay[localRoomUsers.get(socket.id)]?.round === 4) {
+      gamePlay[localRoomUsers.get(socket.id)].matchs = [];
+      if (roomMembers[localRoomUsers.get(socket.id)]?.length === 4) {
+        for (
+          let i = 0;
+          i < roomMembers[localRoomUsers.get(socket.id)]?.length;
+          i++
+        ) {
+          let s = roomMembers[localRoomUsers.get(socket.id)][i];
+          if (gamePlay[localRoomUsers.get(socket.id)][s.email] === 2) {
+            model.reachedFinal(s, localRoomUsers.get(socket.id));
+            gamePlay[localRoomUsers.get(socket.id)].final.push(s);
+          } else {
+            socket.to(socket.id).emit("loser");
+            roomMembers[localRoomUsers.get(socket.id)].splice(i);
+            socket.leave(localRoomUsers.get(socket.id));
+            model.leftTournament(s, localRoomUsers.get(socket.id));
+            localRoomUsers.delete(socket.id);
+          }
+        }
+        gamePlay[localRoomUsers.get(socket.id)].matchs[0] = [
+          gamePlay[localRoomUsers.get(socket.id)].final[0],
+          gamePlay[localRoomUsers.get(socket.id)].final[1],
+        ];
       }
     }
-    console.log(room);
-    socket.join(room);
-    tournamentGroup.set(socket.id, room);
+    callback(gamePlay[localRoomUsers.get(socket.id)]?.matchs);
+  });
+  socket.on("start-tournament", () => {
+    try {
+      const data = gamePlay[localRoomUsers.get(socket.id)]?.matchs;
+      let room = localRoomUsers.get(socket.id);
+      console.log(room);
+      for (let i = 0; i < data?.length; i++) {
+        if (
+          data[i][0]?.email === idtodata.get(socket.id)?.email ||
+          data[i][1]?.email === idtodata.get(socket.id)?.email
+        ) {
+          room = room + "group" + i;
+        }
+      }
+      console.log(room);
+      socket.join(room);
+      tournamentGroup.set(socket.id, room);
+    } catch (err) {
+      console.log(err);
+    }
   });
 
   socket.on("start-game", ({}, callback) => {
     try {
-      const data = gamePlay[localRoomUsers.get(socket.id)]?.round1?.matchs;
+      const data = gamePlay[localRoomUsers.get(socket.id)]?.matchs;
       let type = "";
       for (let i = 0; i < data?.length; i++) {
         if (data[i][0].email === idtodata.get(socket.id).email) {
@@ -302,7 +431,18 @@ export default function handleSocket(socket: Socket) {
         }
       }
       callback(type);
-      socket.to(tournamentGroup?.get(socket.id)).emit('start-game')
+      socket
+        .to(tournamentGroup?.get(socket.id))
+        .emit("start-game", idtodata.get(socket.id));
+    } catch (err) {
+      console.log(err);
+    }
+  });
+  socket.on("start-game-2", () => {
+    try {
+      socket
+        .to(tournamentGroup?.get(socket.id))
+        .emit("start-game-2", idtodata.get(socket.id));
     } catch (err) {
       console.log(err);
     }
@@ -375,23 +515,54 @@ export default function handleSocket(socket: Socket) {
       console.log(err, "heee");
     }
   });
-  socket.on("next-round", () => {
-    try{
 
+  socket.on("round-finished", (data: any) => {
+    if (data?.email) {
+      data = idtodata.get(UserToId.get(data.email));
+      gamePlay[localRoomUsers.get(socket.id)][data.email] = gamePlay[
+        localRoomUsers.get(socket.id)
+      ][data.email]
+        ? gamePlay[localRoomUsers.get(socket.id)][data.email] + 1
+        : 1;
+      socket.to(tournamentGroup?.get(socket.id)).emit("gameFinished");
+      if (!condition[localRoomUsers.get(socket.id)]) {
+        gamePlay[localRoomUsers.get(socket.id)].round =
+          gamePlay[localRoomUsers.get(socket.id)].round + 1;
+        condition[localRoomUsers.get(socket.id)] = true;
+      }
+      model.saveScore(localRoomUsers.get(socket.id), data?._id);
+    } else {
+      socket.to(tournamentGroup?.get(socket.id)).emit("golden-game");
+      goldenGame[tournamentGroup?.get(socket.id)] = true;
+    }
+  });
+  socket.on("next-round", () => {
+    try {
       gamePlay[tournamentGroup?.get(socket.id)] = {
         play: [],
-      current: gamePlay[tournamentGroup?.get(socket.id)].currentPlayer,
-      round: gamePlay[tournamentGroup?.get(socket.id)]?.round
-        ? gamePlay[tournamentGroup?.get(socket.id)].round + 1
-        : 1,
-    };
-    if(gamePlay[tournamentGroup?.get(socket.id)]?.round >3){
-      socket.emit("round-finished")
-    }else{
-      socket.emit("next-round")
+        currentPlayer: gamePlay[tournamentGroup?.get(socket.id)].currentPlayer,
+        round: gamePlay[tournamentGroup?.get(socket.id)]?.round
+          ? gamePlay[tournamentGroup?.get(socket.id)].round + 1
+          : 1,
+      };
+      if (gamePlay[tournamentGroup?.get(socket.id)]?.round > 2) {
+        socket.to(tournamentGroup?.get(socket.id)).emit("round-finished");
+      } else {
+        socket.to(tournamentGroup?.get(socket.id)).emit("next-round");
+      }
+    } catch (err) {
+      console.log(err);
     }
-  }catch(err){
-    console.log(err);
-  }
+  });
+  socket.on("draw", () => {
+    try {
+      socket.to(tournamentGroup?.get(socket.id)).emit("draw");
+    } catch (err) {
+      console.log(err);
+    }
+  });
+
+  socket.on("leave-tournament-group", () => {
+    socket.leave(tournamentGroup.get(socket.id));
   });
 }

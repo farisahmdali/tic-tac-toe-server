@@ -178,6 +178,30 @@ class Model {
     }
   }
 
+  reachedFinal(user: any, tournamentId: string | any) {
+    try {
+      user._id = new ObjectId(user._id);
+      tournamentId = new ObjectId(tournamentId);
+      getDb()
+        ?.collection("hostedTournaments")
+        .updateOne({ _id: tournamentId }, { $set: { final: user } });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  reachedSemiFinal(user: any, tournamentId: string | any) {
+    try {
+      user._id = new ObjectId(user._id);
+      tournamentId = new ObjectId(tournamentId);
+      getDb()
+        ?.collection("hostedTournaments")
+        .updateOne({ _id: tournamentId }, { $set: { semiFinal: user } });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
   async getTournmentDetailsWithUsers(
     id: string | any,
     tournamentId: string | any
@@ -199,6 +223,16 @@ class Model {
     getDb()
       ?.collection("hostedTournaments")
       .updateOne({ _id: id }, { $set: { Started: true } });
+  }
+
+  saveScore(id:string|ObjectId,userId:any){
+    id = new ObjectId(id);
+    userId = new ObjectId(userId);
+
+    getDb()?.collection("hostedTournaments").updateOne({_id:id,'joined._id':userId},{$inc:{'joined.$.score' :1}}).catch((x)=>{
+
+      console.log(x)
+    })
   }
 }
 
