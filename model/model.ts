@@ -184,7 +184,31 @@ class Model {
       tournamentId = new ObjectId(tournamentId);
       getDb()
         ?.collection("hostedTournaments")
-        .updateOne({ _id: tournamentId }, { $set: { final: user } });
+        .updateOne({ _id: tournamentId }, { $addToSet: { final: user } });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  winnerFirst(user:any,tournamentId:string | any){
+    try {
+      user._id = new ObjectId(user._id);
+      tournamentId = new ObjectId(tournamentId);
+      getDb()
+        ?.collection("hostedTournaments")
+        .updateOne({ _id: tournamentId }, { $set: { first: user } });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  winnerSecond(user:any,tournamentId:string | any){
+    try {
+      user._id = new ObjectId(user._id);
+      tournamentId = new ObjectId(tournamentId);
+      getDb()
+        ?.collection("hostedTournaments")
+        .updateOne({ _id: tournamentId }, { $set: { second: user } });
     } catch (err) {
       console.log(err);
     }
@@ -196,7 +220,7 @@ class Model {
       tournamentId = new ObjectId(tournamentId);
       getDb()
         ?.collection("hostedTournaments")
-        .updateOne({ _id: tournamentId }, { $set: { semiFinal: user } });
+        .updateOne({ _id: tournamentId }, { $addToSet: { semiFinal: user } });
     } catch (err) {
       console.log(err);
     }

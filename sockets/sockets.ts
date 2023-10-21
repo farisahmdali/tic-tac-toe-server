@@ -276,9 +276,9 @@ export default function handleSocket(socket: Socket) {
 
   socket.on("user-offline", () => {
     try {
-      const data = tournamentUserOnline[localRoomUsers.get(socket.id)].online;
+      const data = tournamentUserOnline[localRoomUsers.get(socket.id)]?.online;
 
-      const index = data.indexOf(idtodata.get(socket.id).email);
+      const index = data?.indexOf(idtodata.get(socket.id).email);
 
       if (index !== -1) {
         data.splice(index);
@@ -313,6 +313,11 @@ export default function handleSocket(socket: Socket) {
   });
 
   socket.on("get-matchs-tournament", ({}, callback) => {
+try{
+
+
+    console.log(gamePlay[localRoomUsers.get(socket.id)])
+  
     if (gamePlay[localRoomUsers.get(socket.id)]?.round === 1) {
       callback(gamePlay[localRoomUsers.get(socket.id)]?.matchs);
     } else if (gamePlay[localRoomUsers.get(socket.id)]?.round === 2) {
@@ -345,61 +350,107 @@ export default function handleSocket(socket: Socket) {
           losers[i + 1],
         ]);
       }
+      callback(gamePlay[localRoomUsers.get(socket.id)]?.matchs)
     } else if (gamePlay[localRoomUsers.get(socket.id)]?.round === 3) {
-      gamePlay[localRoomUsers.get(socket.id)].matchs = [];
-      if (roomMembers[localRoomUsers.get(socket.id)]?.length === 4) {
-        for (
-          let i = 0;
-          i < roomMembers[localRoomUsers.get(socket.id)]?.length;
-          i++
-        ) {
-          let s = roomMembers[localRoomUsers.get(socket.id)][i];
-          if (gamePlay[localRoomUsers.get(socket.id)][s.email] === 2) {
-            model.reachedFinal(s, localRoomUsers.get(socket.id));
-            socket.to(UserToId.get(s.email)).emit("final")
-            gamePlay[localRoomUsers.get(socket.id)] = { final: [s] };
-          } else if (gamePlay[localRoomUsers.get(socket.id)][s.email] === 1) {
-            model.reachedSemiFinal(s, localRoomUsers.get(socket.id));
-            gamePlay[localRoomUsers.get(socket.id)]?.matchs[0].push(s);
-          } else if(idtodata.get(socket.id)?.email===s?.email){
-            socket.to(socket.id).emit("loser");
-            roomMembers[localRoomUsers.get(UserToId.get(s.email))].splice(i);
-            socket.leave(localRoomUsers.get(UserToId.get(s.email)));
-            model.leftTournament(s, localRoomUsers.get(UserToId.get(s.email)));
-            localRoomUsers.delete(UserToId.get(s.email));
+      gamePlay[localRoomUsers.get(socket.id)].matchs = [[]];
+      console.log("round 3 reached",gamePlay[localRoomUsers.get(socket.id)])
+      for (
+        let i = 0;
+        i < roomMembers[localRoomUsers.get(socket.id)]?.length;
+        i++
+      ) {
+        let s = roomMembers[localRoomUsers.get(socket.id)][i];
+        if (gamePlay[localRoomUsers.get(socket.id)][s.email] === 2) {
+          model.reachedFinal(s, localRoomUsers.get(socket.id));
+          if(s.email === idtodata.get(socket.id).email){
+            callback("final")
           }
+          gamePlay[localRoomUsers.get(socket.id)] = {...gamePlay[localRoomUsers.get(socket.id)], final: [s] };
+        } else if (gamePlay[localRoomUsers.get(socket.id)][s.email] === 1) {
+          model.reachedSemiFinal(s, localRoomUsers.get(socket.id));
+          gamePlay[localRoomUsers.get(socket.id)]?.matchs[0].push(s);
+          console.log("reached semi final",gamePlay[localRoomUsers.get(socket.id)]?.matchs[0]);
+          if(s.email === idtodata.get(socket.id).email){
+            callback(gamePlay[localRoomUsers.get(socket.id)]?.matchs)
+          }
+          
+        } else if (idtodata.get(socket.id)?.email === s?.email) {
+          if(s.email === idtodata.get(socket.id).email){
+            callback("loser")
+          }
+          roomMembers[localRoomUsers.get(UserToId.get(s.email))].splice(i);
+          socket.leave(localRoomUsers.get(UserToId.get(s.email)));
+          model.leftTournament(s, localRoomUsers.get(UserToId.get(s.email)));
+          localRoomUsers.delete(UserToId.get(s.email));
         }
       }
+      callback(gamePlay[localRoomUsers.get(socket.id)]?.matchs)
+      callback(gamePlay[localRoomUsers.get(socket.id)]?.matchs)
     } else if (gamePlay[localRoomUsers.get(socket.id)]?.round === 4) {
-      gamePlay[localRoomUsers.get(socket.id)].matchs = [];
-      if (roomMembers[localRoomUsers.get(socket.id)]?.length === 4) {
-        for (
-          let i = 0;
-          i < roomMembers[localRoomUsers.get(socket.id)]?.length;
-          i++
-        ) {
-          let s = roomMembers[localRoomUsers.get(socket.id)][i];
-          if (gamePlay[localRoomUsers.get(socket.id)][s.email] === 2) {
-            model.reachedFinal(s, localRoomUsers.get(socket.id));
+      gamePlay[localRoomUsers.get(socket.id)].matchs = [[]];
+      for (
+        let i = 0;
+        i < roomMembers[localRoomUsers.get(socket.id)]?.length;
+        i++
+      ) {
+        let s = roomMembers[localRoomUsers.get(socket.id)][i];
+        if (gamePlay[localRoomUsers.get(socket.id)][s.email] === 2 && s.email === idtodata.get(socket.id).email ) {
+          model.reachedFinal(s, localRoomUsers.get(socket.id));
+          console.log(gamePlay[localRoomUsers.get(socket.id)]?.final.includes(s))
+          if(!gamePlay[localRoomUsers.get(socket.id)]?.final.includes(s)){
+            console.log(s,"+++++++++++++++++++++++++++++")
             gamePlay[localRoomUsers.get(socket.id)].final.push(s);
-          } else {
-            socket.to(socket.id).emit("loser");
+            socket.emit("final")
+          }
+          gamePlay[localRoomUsers.get(socket.id)].matchs[0] = [
+            gamePlay[localRoomUsers.get(socket.id)].final[0],
+            gamePlay[localRoomUsers.get(socket.id)].final[1],
+          ]
+          callback([gamePlay[localRoomUsers.get(socket.id)].final])
+        } else if(s.email === idtodata.get(socket.id).email){
+          callback("loser")
+          roomMembers[localRoomUsers.get(socket.id)].splice(i);
+          socket.leave(localRoomUsers.get(socket.id));
+          model.leftTournament(s, localRoomUsers.get(socket.id));
+          localRoomUsers.delete(socket.id);
+        }
+      }
+      
+      
+      
+      
+    }else if(gamePlay[localRoomUsers.get(socket.id)]?.round === 5){
+      for ( let i = 0; i < roomMembers[localRoomUsers.get(socket.id)]?.length; i++) {
+        let s = roomMembers[localRoomUsers.get(socket.id)][i];
+        if (gamePlay[localRoomUsers.get(socket.id)][s.email] === 3) {
+          model.winnerFirst(s, localRoomUsers.get(socket.id));
+          if(s.email === idtodata.get(socket.id).email){
+            callback("You Got First Price")
+            roomMembers[localRoomUsers.get(socket.id)].splice(i);
+            socket.leave(localRoomUsers.get(socket.id));
+            model.leftTournament(s, localRoomUsers.get(socket.id));
+            localRoomUsers.delete(socket.id);
+          }
+          
+        } else {
+          if(s.email === idtodata.get(socket.id).email){
+            callback("You Got Second Price")
             roomMembers[localRoomUsers.get(socket.id)].splice(i);
             socket.leave(localRoomUsers.get(socket.id));
             model.leftTournament(s, localRoomUsers.get(socket.id));
             localRoomUsers.delete(socket.id);
           }
         }
-        gamePlay[localRoomUsers.get(socket.id)].matchs[0] = [
-          gamePlay[localRoomUsers.get(socket.id)].final[0],
-          gamePlay[localRoomUsers.get(socket.id)].final[1],
-        ];
       }
     }
-    callback(gamePlay[localRoomUsers.get(socket.id)]?.matchs);
+    
+  }catch(err){
+    console.log(err)
+  }
   });
   socket.on("start-tournament", () => {
     try {
+      
       const data = gamePlay[localRoomUsers.get(socket.id)]?.matchs;
       let room = localRoomUsers.get(socket.id);
       console.log(room);
@@ -419,14 +470,23 @@ export default function handleSocket(socket: Socket) {
     }
   });
 
+  socket.on("make-tournament-condition-false",()=>{
+    try{
+       condition[localRoomUsers.get(socket.id)]=false;
+    }catch(err){
+      console.log(err)
+    }
+  })
+
   socket.on("start-game", ({}, callback) => {
     try {
+     
       const data = gamePlay[localRoomUsers.get(socket.id)]?.matchs;
       let type = "";
       for (let i = 0; i < data?.length; i++) {
-        if (data[i][0].email === idtodata.get(socket.id).email) {
+        if (data[i][0]?.email === idtodata.get(socket.id).email) {
           type = "X";
-        } else if (data[i][1].email === idtodata.get(socket.id).email) {
+        } else if (data[i][1]?.email === idtodata.get(socket.id).email) {
           type = "O";
         }
       }
@@ -434,6 +494,8 @@ export default function handleSocket(socket: Socket) {
       socket
         .to(tournamentGroup?.get(socket.id))
         .emit("start-game", idtodata.get(socket.id));
+      gamePlay[tournamentGroup?.get(socket.id)]={...gamePlay[tournamentGroup?.get(socket.id)],currentPlayer:"X",play:[]}
+      delete gamePlay[tournamentGroup?.get(socket.id)].round;
     } catch (err) {
       console.log(err);
     }
