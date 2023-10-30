@@ -163,7 +163,7 @@ export default function handleSocket(socket: Socket) {
       if (
         tournament?.type === "public" &&
         !gamePlay[localRoomUsers.get(socket.id)]?.confirm &&
-        tournament?.Started
+        !tournament?.Started
       ) {
         if (tournament?.joined?.length < 4 || !tournament?.joined) {
           await model.joinTournament(user, room);
