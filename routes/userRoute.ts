@@ -18,6 +18,11 @@ router.get("/get-opponent-details",middleware.verifyToken,userRoutesController.g
 router.get("/get-my-tournaments",middleware.verifyToken,userRoutesController.getMyTournament)
 router.post("/save-tournaments",middleware.verifyToken,userRoutesController.saveTournament)
 router.get("/get-tournament-details",middleware.verifyToken,userRoutesController.getTournamentDetails)
+router.get("/searchTournament",middleware.verifyToken,userRoutesController.searchTournament)
+router.post("/addfrnd",middleware.verifyToken,userRoutesController.addfrnd)
+router.get("/getfrnds-details",middleware.verifyToken,userRoutesController.getFrndsDetails)
+router.get("/rank-sorted",middleware.verifyToken,userRoutesController.getRankSorted)
+router.post("/addNotification",middleware.verifyToken,userRoutesController.addNotification)
 
 
 

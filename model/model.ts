@@ -15,10 +15,40 @@ class Model {
   }
 
   async getUserById(id: string) {
-    const res = await getDb()
+    const res: any = await getDb()
       ?.collection("users")
-      .findOne({ _id: new ObjectId(id) });
-    return res;
+      .aggregate([
+        { $match: { _id: new ObjectId(id) } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "frnd",
+            foreignField: "_id",
+            as: "frnds",
+          },
+        },
+        {
+          $project: {
+            "frnds.password": 0,
+            "frnds.invitedTournament": 0,
+            "frnds.frnd": 0,
+            password: 0,
+          },
+        },
+      ])
+      .toArray();
+    console.log(res);
+    return res[0];
+  }
+
+  saveNotifictionId(email: string, nId: string) {
+    try {
+      getDb()
+        ?.collection("notification")
+        .updateOne({ email }, { $set: { nId } }, { upsert: true });
+    } catch {
+      throw Error();
+    }
   }
 
   sendMail(message: string, email: string, subject: string) {
@@ -54,14 +84,48 @@ class Model {
     console.log(res);
   }
 
-  async getEmailStartsWith(word: string | null) {
+  async getTournamentStartsWith(
+    _id: string | ObjectId,
+    word: string | ObjectId
+  ) {
+    _id = new ObjectId(_id);
     let pattern = new RegExp(`^${word}`, `i`);
+    return await getDb()
+      ?.collection("hostedTournaments")
+      .aggregate([
+        {
+          $match: {
+            head: { $regex: pattern },
+            admin: { $ne: _id },
+          },
+        },
+      ])
+      .toArray()
+      .catch((err) => console.log(err));
+  }
+
+  addfrnd(_id: string | ObjectId, frndId: string | ObjectId) {
+    try {
+      _id = new ObjectId(_id);
+      frndId = new ObjectId(frndId);
+      getDb()
+        ?.collection("users")
+        .updateOne({ _id }, { $addToSet: { frnd: frndId } });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async getEmailStartsWith(word: string | null, _id: string | ObjectId) {
+    let pattern = new RegExp(`^${word}`, `i`);
+    _id = new ObjectId(_id);
     let res = await getDb()
       ?.collection("users")
       .aggregate([
         {
           $match: {
             email: { $regex: pattern },
+            _id: { $ne: _id },
           },
         },
         {
@@ -93,7 +157,8 @@ class Model {
     let res = await getDb()
       ?.collection("hostedTournaments")
       .find({
-        save: { $ne: id },
+        admin: { $ne: id },
+        Started: { $ne: true },
         $where: function () {
           return this.joined.length < this.limit;
         },
@@ -103,6 +168,28 @@ class Model {
       .toArray();
 
     return res;
+  }
+
+  async updateRank(id: string | ObjectId, rank: number) {
+    id = new ObjectId(id);
+    getDb()?.collection("users").updateOne({ _id: id }, { $set: { rank } });
+  }
+
+  async getUsersInOrder() {
+    return await getDb()
+      ?.collection("users")
+      .find({})
+      .sort({ score: -1 })
+      .toArray();
+  }
+
+  async getUsersByRank() {
+    return await getDb()
+      ?.collection("users")
+      .find({})
+      .sort({ rank: 1 })
+      .limit(10)
+      .toArray();
   }
 
   async getMyTournamentsAndJoinedTournaments(id: string | any) {
@@ -190,25 +277,53 @@ class Model {
     }
   }
 
-  winnerFirst(user:any,tournamentId:string | any){
+  async winnerFirst(user: any, tournamentId: string | any) {
     try {
       user._id = new ObjectId(user._id);
       tournamentId = new ObjectId(tournamentId);
       getDb()
         ?.collection("hostedTournaments")
         .updateOne({ _id: tournamentId }, { $set: { first: user } });
+      const res = await getDb()
+        ?.collection("hostedTournaments")
+        .findOne({ _id: tournamentId });
+      getDb()
+        ?.collection("users")
+        .updateOne(
+          { _id: user._id },
+          {
+            $inc: { score: 2, win: 1 },
+            $push: {
+              history: { tName: res?.head, prize: 1, tId: tournamentId },
+            },
+          }
+        );
     } catch (err) {
       console.log(err);
     }
   }
 
-  winnerSecond(user:any,tournamentId:string | any){
+  async winnerSecond(user: any, tournamentId: string | any) {
     try {
       user._id = new ObjectId(user._id);
       tournamentId = new ObjectId(tournamentId);
       getDb()
         ?.collection("hostedTournaments")
         .updateOne({ _id: tournamentId }, { $set: { second: user } });
+      const res = await getDb()
+        ?.collection("hostedTournaments")
+        .findOne({ _id: tournamentId });
+      getDb()
+        ?.collection("users")
+        .updateOne(
+          { _id: user._id },
+          {
+            $inc: { score: 1, win: 1 },
+            $push: {
+              history: { tName: res?.head, prize: 2, tId: tournamentId },
+            },
+          }
+        );
     } catch (err) {
       console.log(err);
     }
@@ -241,22 +356,64 @@ class Model {
       console.log(err);
     }
   }
-  startTournament(id: string | ObjectId) {
+  async startTournament(id: string | ObjectId) {
     id = new ObjectId(id);
 
     getDb()
       ?.collection("hostedTournaments")
       .updateOne({ _id: id }, { $set: { Started: true } });
+    const users: any = await getDb()
+      ?.collection("hostedTournaments")
+      .findOne({ _id: id });
+    const joined = users.joined;
+    for (let i = 0; i < joined.length; i++) {
+      const email = joined[i].email;
+      getDb()
+        ?.collection("users")
+        .updateOne({ email }, { $inc: { played: 1 } });
+    }
   }
 
-  saveScore(id:string|ObjectId,userId:any){
+  saveScore(id: string | ObjectId, userId: any) {
     id = new ObjectId(id);
     userId = new ObjectId(userId);
 
-    getDb()?.collection("hostedTournaments").updateOne({_id:id,'joined._id':userId},{$inc:{'joined.$.score' :1}}).catch((x)=>{
+    getDb()
+      ?.collection("hostedTournaments")
+      .updateOne(
+        { _id: id, "joined._id": userId },
+        { $inc: { "joined.$.score": 1 } }
+      )
+      .catch((x) => {
+        console.log(x);
+      });
+  }
 
-      console.log(x)
-    })
+  async sendNotification(
+    email: string,
+    title: string,
+    body: string,
+    subtitle: string | null,
+    link:string
+  ) {
+    const res:any = await getDb()?.collection("notification").findOne({ email });
+
+    fetch("https://fcm.googleapis.com/fcm/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "key="+process.env.GKEY,
+      },
+      body:JSON.stringify({
+        to:res.nId,
+        notification:{
+          body,title,subtitle,click_action:"http://localhost:3000/"+link,
+        },
+        data:{
+          route:"/"
+        }
+      })
+    });
   }
 }
 

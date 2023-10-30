@@ -91,9 +91,9 @@ class Controller {
       res.sendStatus(500);
     }
   }
-  async searchUser(req: Request, res: Response) {
+  async searchUser(req: Request |any, res: Response) {
     try {
-      let user = await handler.searchUser(req.query.word + "");
+      let user = await handler.searchUser(req.query.word + "",req._id);
       res.status(200).send({ user });
     } catch (err) {
       console.log(err);
@@ -111,6 +111,40 @@ class Controller {
         res.sendStatus(403);
       }
     } catch (err) {
+      console.log(err);
+      res.sendStatus(500);
+    }
+  }
+
+  async searchTournament(req: any, res: Response){
+    try {
+      const valid = await handler.searchTournament(req._id,req.query.elem);
+      if (valid) {
+        res.status(200).send(valid);
+      } else {
+        console.log("error");
+        res.sendStatus(403);
+      }
+    } catch (err) {
+      console.log(err);
+      res.sendStatus(500);
+    }
+  }
+
+  addfrnd(req: any, res: Response){
+    try{
+      handler.addfrnd(req._id,req.body.id)
+    }catch(err){
+      console.log(err);
+      res.sendStatus(500);
+    }
+  }
+
+ async getFrndsDetails(req: any, res: Response ){
+    try{
+      const frnds =  await handler.getFrndsDetails(req.query.ids)
+      res.status(200).send(frnds)
+    }catch(err){
       console.log(err);
       res.sendStatus(500);
     }
@@ -183,6 +217,23 @@ class Controller {
     } catch (err) {
       console.log(err);
       res.sendStatus(500);
+    }
+  }
+  async getRankSorted(req:Request,res:Response){
+    try {
+      const data = await handler.RankSorted();
+      res.status(200).send(data)
+    } catch (err) {
+      console.log(err);
+      res.sendStatus(500);
+    }
+  }
+  async addNotification(req:any,res:Response){
+    try{
+      handler.addNotication(req._id,req.body.nId)
+      res.sendStatus(200)
+    }catch(err){
+      res.sendStatus(500)
     }
   }
 }

@@ -6,6 +6,7 @@ import morgan from "morgan"
 import {Server} from "socket.io"
 import http from "http"
 import   handleSocket  from "../sockets/sockets";
+import model from "../model/model";
 let io
 
 export const createServer = ()=>{
@@ -19,5 +20,13 @@ export const createServer = ()=>{
     app.use(morgan("dev"));
     app.use("/v4/api",userRoute)
     return server
+}
+
+export const ranking = async() =>{
+    const users:any = await model.getUsersInOrder()
+    console.log(users)
+    for(let i=0;i<users?.length;i++){
+        model.updateRank(users[i]?._id,i+1)
+    }
 }
 
