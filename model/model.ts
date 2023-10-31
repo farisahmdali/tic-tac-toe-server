@@ -292,7 +292,7 @@ class Model {
         .updateOne(
           { _id: user._id },
           {
-            $inc: { score: 2, win: 1 },
+            $inc: { score: 2, wins: 1 },
             $push: {
               history: { tName: res?.head, prize: 1, tId: tournamentId },
             },
@@ -318,7 +318,7 @@ class Model {
         .updateOne(
           { _id: user._id },
           {
-            $inc: { score: 1, win: 1 },
+            $inc: { score: 1, wins: 1 },
             $push: {
               history: { tName: res?.head, prize: 2, tId: tournamentId },
             },
@@ -356,22 +356,16 @@ class Model {
       console.log(err);
     }
   }
-  async startTournament(id: string | ObjectId) {
+  async startTournament(id: string | ObjectId,email:string) {
     id = new ObjectId(id);
 
     getDb()
       ?.collection("hostedTournaments")
       .updateOne({ _id: id }, { $set: { Started: true } });
-    const users: any = await getDb()
-      ?.collection("hostedTournaments")
-      .findOne({ _id: id });
-    const joined = users.joined;
-    for (let i = 0; i < joined.length; i++) {
-      const email = joined[i].email;
+    
       getDb()
         ?.collection("users")
         .updateOne({ email }, { $inc: { played: 1 } });
-    }
   }
 
   saveScore(id: string | ObjectId, userId: any) {

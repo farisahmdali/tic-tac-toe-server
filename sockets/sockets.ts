@@ -21,7 +21,7 @@ export default function handleSocket(socket: Socket) {
   console.log("user connected with id  " + socket.id);
 
   socket.on("join-local-room", ({ room, user }) => {
-    if (roomMembers[room + ""]?.length < 2 || !roomMembers[room + ""]) {
+    if (roomMembers[room + ""]?.length < 3 && !roomMembers[room+""]?.includes([user,socket.id]) || !roomMembers[room + ""]) {
       console.log({ room, user });
       socket.join(room);
       socket.to(room).emit("join-local-room", { user });
@@ -155,6 +155,13 @@ export default function handleSocket(socket: Socket) {
   });
   socket.on("local-game-finished", () => {
     socket.to(localRoomUsers.get(socket.id)).emit("local-game-finished-end");
+    try{
+      if(typeof parseInt(localRoomUsers.get(socket.id)) === "number"){
+        handler.removeRooms(parseInt(localRoomUsers.get(socket.id)))
+      }
+    }catch(err){
+      console.log(err);
+    }
   });
 
   socket.on("join-tournament-public", async ({ user, room }, callback) => {
@@ -212,9 +219,13 @@ export default function handleSocket(socket: Socket) {
   socket.on("userExited", async (data) => {
     console.log("disconnect", socket.id);
     socket.to(localRoomUsers.get(socket.id)).emit("user-quit");
+   
     UserToId.set(data,socket.id);
 
     try {
+      if(typeof parseInt(localRoomUsers.get(socket.id)) === "number"){
+        handler.removeRooms(parseInt(localRoomUsers.get(socket.id)))
+      }
       if (!gamePlay[localRoomUsers.get(socket.id)]?.confirm) {
         const user = idtodata.get(socket.id);
         console.log(user);
@@ -239,6 +250,9 @@ export default function handleSocket(socket: Socket) {
     console.log("disconnect", socket.id);
     socket.to(localRoomUsers.get(socket.id)).emit("user-quit");
     try {
+      if(typeof parseInt(localRoomUsers.get(socket.id)) === "number"){
+        handler.removeRooms(parseInt(localRoomUsers.get(socket.id)))
+      }
       if (!gamePlay[localRoomUsers.get(socket.id)]?.confirm) {
         const user = idtodata.get(socket.id);
         await model.leftTournament(user, localRoomUsers.get(socket.id));
@@ -305,7 +319,7 @@ export default function handleSocket(socket: Socket) {
       matchs: [],
       round: 1,
     };
-    model.startTournament(localRoomUsers.get(socket.id))
+    model.startTournament(localRoomUsers.get(socket.id),idtodata.get(socket.id).email)
     let j = 0;
     for (
       let i = 0;

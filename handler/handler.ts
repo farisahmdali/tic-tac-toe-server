@@ -227,6 +227,12 @@ class Handler {
       return false;
     }
   }
+  removeRooms(room:number){
+    const index = rooms.indexOf(room);
+    if(index!==-1){
+      rooms.splice(index)
+    }
+  }
  async getTournament(id:string,limit:number){
     try{
     const data = await model.getTournaments(id,limit)
