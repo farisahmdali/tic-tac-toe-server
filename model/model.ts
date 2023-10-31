@@ -329,6 +329,32 @@ class Model {
     }
   }
 
+  async lostTournament(user: any, tournamentId: string | any) {
+    try {
+      user._id = new ObjectId(user._id);
+      tournamentId = new ObjectId(tournamentId);
+      getDb()
+        ?.collection("hostedTournaments")
+        .updateOne({ _id: tournamentId }, { $set: { second: user } });
+      const res = await getDb()
+        ?.collection("hostedTournaments")
+        .findOne({ _id: tournamentId });
+      getDb()
+        ?.collection("users")
+        .updateOne(
+          { _id: user._id },
+          {
+            $inc: { score: -1 },
+            $push: {
+              history: { tName: res?.head, prize: 3, tId: tournamentId },
+            },
+          }
+        );
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
   reachedSemiFinal(user: any, tournamentId: string | any) {
     try {
       user._id = new ObjectId(user._id);

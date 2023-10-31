@@ -399,6 +399,7 @@ try{
         } else if (idtodata.get(socket.id)?.email === s?.email) {
           if(s.email === idtodata.get(socket.id).email){
             callback("loser")
+            model.lostTournament(s,localRoomUsers.get(socket.id))
           }
           roomMembers[localRoomUsers.get(UserToId.get(s.email))].splice(i);
           socket.leave(localRoomUsers.get(UserToId.get(s.email)));
@@ -432,6 +433,7 @@ try{
           callback([gamePlay[localRoomUsers.get(socket.id)].final])
         } else if(s.email === idtodata.get(socket.id).email){
           callback("loser")
+          model.lostTournament(s,localRoomUsers.get(socket.id))
           roomMembers[localRoomUsers.get(socket.id)].splice(i);
           socket.leave(localRoomUsers.get(socket.id));
           model.leftTournament(s, localRoomUsers.get(socket.id));
