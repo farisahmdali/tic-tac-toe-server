@@ -23,6 +23,8 @@ router.post("/addfrnd",middleware.verifyToken,userRoutesController.addfrnd)
 router.get("/getfrnds-details",middleware.verifyToken,userRoutesController.getFrndsDetails)
 router.get("/rank-sorted",middleware.verifyToken,userRoutesController.getRankSorted)
 router.post("/addNotification",middleware.verifyToken,userRoutesController.addNotification)
+router.post("/updateName",middleware.verifyToken,userRoutesController.updateName)
+router.post("/removefrnd",middleware.verifyToken,userRoutesController.removefrnd)
 
 
 

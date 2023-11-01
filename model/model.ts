@@ -116,6 +116,18 @@ class Model {
     }
   }
 
+  removefrnd(_id: string | ObjectId, frndId: string | ObjectId) {
+    try {
+      _id = new ObjectId(_id);
+      frndId = new ObjectId(frndId);
+      getDb()
+        ?.collection("users")
+        .updateOne({ _id }, { $pull: { frnd: frndId } });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
   async getEmailStartsWith(word: string | null, _id: string | ObjectId) {
     let pattern = new RegExp(`^${word}`, `i`);
     _id = new ObjectId(_id);
@@ -190,6 +202,16 @@ class Model {
       .sort({ rank: 1 })
       .limit(10)
       .toArray();
+  }
+
+  async updateName(id:string | ObjectId,name:string){
+    try{
+      id =new ObjectId(id)
+      getDb()?.collection("users").updateOne({_id:id},{$set:{fullName:name}})
+    }catch(err){
+      console.log(err);
+      throw Error()
+    }
   }
 
   async getMyTournamentsAndJoinedTournaments(id: string | any) {

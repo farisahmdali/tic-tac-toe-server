@@ -140,6 +140,15 @@ class Controller {
     }
   }
 
+  removefrnd(req: any, res: Response){
+    try{
+      handler.removefrnd(req._id,req.body.id)
+    }catch(err){
+      console.log(err);
+      res.sendStatus(500);
+    }
+  }
+
  async getFrndsDetails(req: any, res: Response ){
     try{
       const frnds =  await handler.getFrndsDetails(req.query.ids)
@@ -234,6 +243,15 @@ class Controller {
       res.sendStatus(200)
     }catch(err){
       res.sendStatus(500)
+    }
+  }
+  async updateName(req:Request | any,res:Response){
+    try {
+       handler.updateName(req?._id,req?.body?.name);
+       res.sendStatus(200)
+    } catch (err) {
+      console.log(err);
+      res.sendStatus(500);
     }
   }
 }

@@ -125,6 +125,14 @@ class Handler {
     }
   }
 
+  removefrnd(id:string,frndId:string){
+    try{
+       model.removefrnd(id,frndId)
+    }catch(err){
+      console.log(err);
+    }
+  }
+
   async getFrndsDetails(ids:string[]){
     try{
       const frnds = []
@@ -298,6 +306,15 @@ class Handler {
       throw Error()
     }
   }
+  async updateName(id:string,name:string){
+    try{
+      return await model.updateName(id,name)
+    }catch(err){
+      console.log(err)
+      throw Error()
+    }
+  }
+
   async addNotication(_id:string,nId:string){
     try{
       const res = await model.getUserById(_id);
