@@ -70,11 +70,11 @@ class Model {
         }
     }
     sendMail(message, email, subject) {
-        console.log(process.env.USER, process.env.PASS);
+        console.log(process.env.USERN, process.env.PASS);
         const transporter = nodemailer_1.default.createTransport({
             service: "gmail",
             auth: {
-                user: process.env.USER,
+                user: process.env.USERN,
                 pass: process.env.PASS,
             },
         });
