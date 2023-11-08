@@ -20,6 +20,31 @@ class Middleware {
       res.sendStatus(403);
     }
   }
+
+  verifyWithdraw(req: Request | any, res: Response, next: NextFunction){
+    try {
+            
+      if (req.query.token) {
+        const {username}:any = jwt.verify(req.query.token, process.env.WITHDRAWSECRET + "");
+        console.log(username,"auth");
+        
+        req.username = username;
+        next();
+      }else if(req.body.token){
+        const {username}:any = jwt.verify(req.body.token, process.env.WITHDRAWSECRET + "");
+        console.log(username,"auth");
+        
+        req.username = username;
+        next();
+      } else {
+        console.log("not authenticated")
+        res.sendStatus(403);
+      }
+    } catch (err) {
+      console.log(err);
+      res.sendStatus(403);
+    }
+  }
 }
 
 export default new Middleware()

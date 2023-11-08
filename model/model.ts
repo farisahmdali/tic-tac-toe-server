@@ -1,6 +1,13 @@
 import { Collection, Db, ObjectId } from "mongodb";
 import { getDb } from "../connections/mongodbConnection";
 import nodemailer from "nodemailer";
+import Razorpay from "razorpay";
+
+const paymentOrder = new Map();
+const instance = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID + "",
+  key_secret: process.env.RAZORPAY_KEY_SECRET + "",
+});
 
 class Model {
   async getUser(email: string) {
@@ -37,7 +44,6 @@ class Model {
         },
       ])
       .toArray();
-    console.log(res);
     return res[0];
   }
 
@@ -52,6 +58,7 @@ class Model {
   }
 
   sendMail(message: string, email: string, subject: string) {
+    console.log(process.env.USER,process.env.PASS)
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -81,7 +88,6 @@ class Model {
     let res = await getDb()
       ?.collection("users")
       .updateOne({ email }, { $set: { password } });
-    console.log(res);
   }
 
   async getTournamentStartsWith(
@@ -164,21 +170,19 @@ class Model {
       .updateOne({ email }, { $addToSet: { invitedTournamet: hostId } });
   }
 
-  async getTournaments(id: string | any, limit: number) {
+  async getTournaments(id: string | any, limit: number = 0) {
     id = new ObjectId(id);
     let res = await getDb()
       ?.collection("hostedTournaments")
       .find({
-        admin: { $ne: id },
         Started: { $ne: true },
         $where: function () {
           return this.joined.length < this.limit;
         },
       })
-      .skip(parseInt(limit + ""))
+      // .skip(parseInt(limit + ""))
       .limit(parseInt(limit + "") + 50)
       .toArray();
-
     return res;
   }
 
@@ -204,13 +208,71 @@ class Model {
       .toArray();
   }
 
-  async updateName(id:string | ObjectId,name:string){
-    try{
-      id =new ObjectId(id)
-      getDb()?.collection("users").updateOne({_id:id},{$set:{fullName:name}})
-    }catch(err){
+  async updateName(id: string | ObjectId, name: string) {
+    try {
+      id = new ObjectId(id);
+      getDb()
+        ?.collection("users")
+        .updateOne({ _id: id }, { $set: { fullName: name } });
+    } catch (err) {
       console.log(err);
-      throw Error()
+      throw Error();
+    }
+  }
+
+  async createOrder(amount: number, id: string) {
+    try {
+      let orderG: any;
+      await instance.orders.create(
+        { amount, currency: "INR" },
+        (err, order) => {
+          if (err) {
+            throw Error();
+          } else {
+            orderG = order;
+            console.log(orderG, order, "helo");
+            paymentOrder.set(id, order);
+            return order;
+          }
+        }
+      );
+      return orderG;
+    } catch (err) {
+      console.log(err);
+      throw Error();
+    }
+  }
+
+  async addCredits(order: any, id: string) {
+    try {
+      if (
+        paymentOrder.get(id).id === order?.id &&
+        paymentOrder.get(id).amount === order?.amount
+      ) {
+        getDb()
+          ?.collection("users")
+          .updateOne(
+            { _id: new ObjectId(id) },
+            { $inc: { credit: order.amount } }
+          );
+      }
+    } catch (err) {
+      console.log(err);
+      throw Error();
+    }
+  }
+
+  withdraw(data: any, id: string | ObjectId, amount: number) {
+    try {
+      id = new ObjectId(id);
+
+      getDb()
+        ?.collection("users")
+        .updateOne({ _id: id }, { $inc: { credit: -amount } });
+      getDb()?.collection("withdraws").insertOne(data);
+    } catch (err) {
+      console.log(err);
+      throw Error();
     }
   }
 
@@ -303,6 +365,7 @@ class Model {
     try {
       user._id = new ObjectId(user._id);
       tournamentId = new ObjectId(tournamentId);
+      const date = new Date();
       getDb()
         ?.collection("hostedTournaments")
         .updateOne({ _id: tournamentId }, { $set: { first: user } });
@@ -314,12 +377,47 @@ class Model {
         .updateOne(
           { _id: user._id },
           {
-            $inc: { score: 2, wins: 1 },
+            $inc: {
+              score: 2,
+              wins: 1,
+              credit: ((res?.totalPrice * 100) / 4) * 3,
+            },
             $push: {
-              history: { tName: res?.head, prize: 1, tId: tournamentId },
+              history: {
+                tName: res?.head,
+                prize: 1,
+                tId: tournamentId,
+                date:
+                  date.getDate() +
+                  "/" +
+                  date.getMonth() +
+                  "/" +
+                  date.getFullYear(),
+                time: date.getHours() + ":" + date.getMinutes(),
+              },
             },
           }
         );
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  activeUser(email: string) {
+    try {
+      getDb()
+        ?.collection("users")
+        .updateOne({ email }, { $set: { active: true } });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  deactiveUser(email: string) {
+    try {
+      getDb()
+        ?.collection("users")
+        .updateOne({ email }, { $set: { active: false } });
     } catch (err) {
       console.log(err);
     }
@@ -329,6 +427,7 @@ class Model {
     try {
       user._id = new ObjectId(user._id);
       tournamentId = new ObjectId(tournamentId);
+      const date = new Date();
       getDb()
         ?.collection("hostedTournaments")
         .updateOne({ _id: tournamentId }, { $set: { second: user } });
@@ -340,9 +439,24 @@ class Model {
         .updateOne(
           { _id: user._id },
           {
-            $inc: { score: 1, wins: 1 },
+            $inc: {
+              score: 1,
+              wins: 1,
+              credit: ((res?.totalPrice * 100) / 4) * 1,
+            },
             $push: {
-              history: { tName: res?.head, prize: 2, tId: tournamentId },
+              history: {
+                tName: res?.head,
+                prize: 2,
+                tId: tournamentId,
+                date:
+                  date.getDate() +
+                  "/" +
+                  date.getMonth() +
+                  "/" +
+                  date.getFullYear(),
+                time: date.getHours() + ":" + date.getMinutes(),
+              },
             },
           }
         );
@@ -355,6 +469,7 @@ class Model {
     try {
       user._id = new ObjectId(user._id);
       tournamentId = new ObjectId(tournamentId);
+      const date = new Date();
       getDb()
         ?.collection("hostedTournaments")
         .updateOne({ _id: tournamentId }, { $set: { second: user } });
@@ -368,7 +483,18 @@ class Model {
           {
             $inc: { score: -1 },
             $push: {
-              history: { tName: res?.head, prize: 3, tId: tournamentId },
+              history: {
+                tName: res?.head,
+                prize: 3,
+                tId: tournamentId,
+                date:
+                  date.getDate() +
+                  "/" +
+                  date.getMonth() +
+                  "/" +
+                  date.getFullYear(),
+                time: date.getHours() + ":" + date.getMinutes(),
+              },
             },
           }
         );
@@ -404,16 +530,25 @@ class Model {
       console.log(err);
     }
   }
-  async startTournament(id: string | ObjectId,email:string) {
+  async startTournament(id: string | ObjectId, email: string) {
     id = new ObjectId(id);
+    const tournament = await getDb()
+      ?.collection("hostedTournaments")
+      .findOne({ _id: id });
 
     getDb()
       ?.collection("hostedTournaments")
-      .updateOne({ _id: id }, { $set: { Started: true } });
-    
-      getDb()
-        ?.collection("users")
-        .updateOne({ email }, { $inc: { played: 1 } });
+      .updateOne(
+        { _id: id },
+        { $set: { Started: true, totalPrice: tournament?.amount * 4 } }
+      );
+
+    getDb()
+      ?.collection("users")
+      .updateOne(
+        { email },
+        { $inc: { played: 1, credit: -tournament?.amount * 100 } }
+      );
   }
 
   saveScore(id: string | ObjectId, userId: any) {
@@ -436,26 +571,50 @@ class Model {
     title: string,
     body: string,
     subtitle: string | null,
-    link:string
+    link: string
   ) {
-    const res:any = await getDb()?.collection("notification").findOne({ email });
+    const res: any = await getDb()
+      ?.collection("notification")
+      .findOne({ email });
 
     fetch("https://fcm.googleapis.com/fcm/send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "key="+process.env.GKEY,
+        Authorization: "key=" + process.env.GKEY,
       },
-      body:JSON.stringify({
-        to:res.nId,
-        notification:{
-          body,title,subtitle,click_action:"http://localhost:3000/"+link,
+      body: JSON.stringify({
+        to: res.nId,
+        notification: {
+          body,
+          title,
+          subtitle,
+          click_action: "http://localhost:3000/" + link,
         },
-        data:{
-          route:"/"
-        }
-      })
+        data: {
+          route: "/",
+        },
+      }),
     });
+  }
+
+  async getWithdrawadata() {
+    try {
+      return await getDb()?.collection("withdraws").find({}).toArray();
+    } catch (err) {
+      console.log(err);
+      throw Error();
+    }
+  }
+
+  async withdrawDone(id:string){
+    try{
+      getDb()?.collection("withdraws").deleteOne({_id:new ObjectId(id)})
+
+    }catch(err){
+      console.log(err);
+      throw Error();
+    }
   }
 }
 

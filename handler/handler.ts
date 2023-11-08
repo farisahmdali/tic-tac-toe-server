@@ -169,6 +169,8 @@ class Handler {
           viewers:0,
           instant: data.instant,
           view:data?.view || false,
+          amount:data?.amount,
+          Started:false
         });
       } else {
         const date = new Date(data?.date);
@@ -309,6 +311,67 @@ class Handler {
   async updateName(id:string,name:string){
     try{
       return await model.updateName(id,name)
+    }catch(err){
+      console.log(err)
+      throw Error()
+    }
+  }
+
+  async orderPayment(amount:number,id:string){
+    try{
+      return await model.createOrder(amount,id)
+    }catch(err){
+      console.log(err)
+      throw Error()
+    }
+  }
+
+  addCredits(order:any,id:string){
+    try{
+      model.addCredits(order,id)
+    }catch(err){
+      console.log(err)
+      throw Error()
+    }
+  }
+
+  async withdraw(id:string,amount:number,upiId:string){
+    try{
+      const user =await model.getUserById(id)
+      model.withdraw({email:user?.email,amount,upiId,fullName:user?.fullName},id,amount)
+
+    }catch(err){
+      console.log(err)
+      throw Error()
+    }
+  }
+
+  withdrawLogin(username:string,password:string){
+    try{
+      console.log(process.env.USERNAMEW,process.env.PASS)
+      if(username===process.env.USERNAMEW&&password===process.env.PASSWORD){
+        return jwt.sign({username},process.env.WITHDRAWSECRET+"")
+      }else{
+        return false
+      }
+    }catch(err){
+      console.log(err)
+      throw Error()
+    }
+  }
+
+  async getWithdrawdata(){
+    try{
+      return await model.getWithdrawadata()
+    }catch(err){
+      console.log(err)
+      throw Error()
+    }
+  }
+
+  async withdrawDone(id:string){
+    try{
+      model.withdrawDone(id)
     }catch(err){
       console.log(err)
       throw Error()

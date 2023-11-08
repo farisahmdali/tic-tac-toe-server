@@ -254,6 +254,71 @@ class Controller {
       res.sendStatus(500);
     }
   }
+
+  async orderPayment(req:Request | any,res:Response){
+    try{
+      const order = await handler.orderPayment(req.query.amount,req._id);
+      res.status(200).send({order});
+    }catch(err){
+      console.log(err);
+      res.sendStatus(500);
+    }
+  }
+
+  async addCredits(req: Request|any, res: Response){
+    try{
+      handler.addCredits(req.body.order,req._id)
+      res.sendStatus(200)
+    }catch(err){
+      console.log(err);
+      res.sendStatus(500);
+    }
+  }
+
+  withdraw(req: Request|any, res: Response){
+    try{
+      handler.withdraw(req._id,req.body.amount,req.body.upiId)
+      res.sendStatus(200)
+    }catch(err){
+      console.log(err)
+      res.sendStatus(500)
+    }
+  }
+  withdrawLogin(req: Request|any, res: Response){
+    try{
+      const token = handler.withdrawLogin(req.query.username,req.query.password)
+      if(token){
+        res.status(200).send({token})
+      }else{
+        res.sendStatus(403)
+      }
+    }catch(err){
+      console.log(err)
+      res.sendStatus(500)
+    }
+  }
+ async getWithdrawdata(req: Request, res: Response){
+    try{
+      const data =await handler.getWithdrawdata()
+      if(data){
+        res.status(200).send({data})
+      }else{
+        res.sendStatus(403)
+      }
+    }catch(err){
+      console.log(err)
+      res.sendStatus(500)
+    }
+  }
+
+  async withdrawDone(req: Request, res: Response){
+    try{
+      handler.withdrawDone(req.body.id)
+    }catch(err){
+      console.log(err)
+      res.sendStatus(500)
+    }
+  }
 }
 
 export default new Controller();

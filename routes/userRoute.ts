@@ -25,6 +25,12 @@ router.get("/rank-sorted",middleware.verifyToken,userRoutesController.getRankSor
 router.post("/addNotification",middleware.verifyToken,userRoutesController.addNotification)
 router.post("/updateName",middleware.verifyToken,userRoutesController.updateName)
 router.post("/removefrnd",middleware.verifyToken,userRoutesController.removefrnd)
+router.get("/orderPayment",middleware.verifyToken,userRoutesController.orderPayment)
+router.post("/addCredits",middleware.verifyToken,userRoutesController.addCredits)
+router.post("/withdraw",middleware.verifyToken,userRoutesController.withdraw)
+router.get("/withdrawLogin",userRoutesController.withdrawLogin)
+router.get("/get-withdraw-data",middleware.verifyWithdraw,userRoutesController.getWithdrawdata)
+router.post("/withdraw-done",middleware.verifyWithdraw,userRoutesController.withdrawDone)
 
 
 
