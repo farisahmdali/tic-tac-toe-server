@@ -225,13 +225,15 @@ function handleSocket(socket) {
         }
     }));
     socket.on("userExited", (data) => __awaiter(this, void 0, void 0, function* () {
-        var _e;
+        var _e, _f;
         console.log("disconnect", socket.id);
         socket.to(localRoomUsers.get(socket.id)).emit("user-quit");
-        UserToId.set(data, socket.id);
-        emailtoid.set(socket.id, data);
         if (data) {
-            model_1.default.activeUser(data);
+            UserToId.set(data, socket.id);
+            emailtoid.set(socket.id, data);
+            if (data) {
+                model_1.default.activeUser(data);
+            }
         }
         try {
             if (typeof parseInt(localRoomUsers.get(socket.id)) === "number") {
@@ -241,7 +243,7 @@ function handleSocket(socket) {
                 const user = idtodata.get(socket.id);
                 console.log(user);
                 yield model_1.default.leftTournament(user, localRoomUsers.get(socket.id));
-                const index = roomMembers[localRoomUsers.get(socket.id)].indexOf(user);
+                const index = (_f = roomMembers[localRoomUsers.get(socket.id)]) === null || _f === void 0 ? void 0 : _f.indexOf(user);
                 if (index !== -1) {
                     roomMembers[localRoomUsers.get(socket.id)].splice(index);
                 }
@@ -255,7 +257,7 @@ function handleSocket(socket) {
         }
     }));
     socket.on("disconnect", () => __awaiter(this, void 0, void 0, function* () {
-        var _f;
+        var _g;
         console.log("disconnect", socket.id);
         if (emailtoid.get(socket.id)) {
             model_1.default.deactiveUser(emailtoid.get(socket.id));
@@ -265,7 +267,7 @@ function handleSocket(socket) {
             if (typeof parseInt(localRoomUsers.get(socket.id)) === "number") {
                 handler_1.default.removeRooms(parseInt(localRoomUsers.get(socket.id)));
             }
-            if (!((_f = gamePlay[localRoomUsers.get(socket.id)]) === null || _f === void 0 ? void 0 : _f.confirm)) {
+            if (!((_g = gamePlay[localRoomUsers.get(socket.id)]) === null || _g === void 0 ? void 0 : _g.confirm)) {
                 const user = idtodata.get(socket.id);
                 yield model_1.default.leftTournament(user, localRoomUsers.get(socket.id));
                 const index = roomMembers[localRoomUsers.get(socket.id)].indexOf(user);
@@ -660,14 +662,14 @@ function handleSocket(socket) {
         socket.leave(tournamentGroup.get(socket.id));
     });
     socket.on("join-tournament-private", ({ user, room, pass }, callback) => __awaiter(this, void 0, void 0, function* () {
-        var _g, _h;
+        var _h, _j;
         let tournament = yield model_1.default.getTournmentDetails(room);
         try {
             if (((tournament === null || tournament === void 0 ? void 0 : tournament.type) === "private" &&
                 (tournament === null || tournament === void 0 ? void 0 : tournament.pass) === pass &&
-                !((_g = gamePlay[localRoomUsers.get(socket.id)]) === null || _g === void 0 ? void 0 : _g.confirm)) ||
+                !((_h = gamePlay[localRoomUsers.get(socket.id)]) === null || _h === void 0 ? void 0 : _h.confirm)) ||
                 user._id === tournament.admin + "") {
-                if (((_h = tournament === null || tournament === void 0 ? void 0 : tournament.joined) === null || _h === void 0 ? void 0 : _h.length) < 4 || !(tournament === null || tournament === void 0 ? void 0 : tournament.joined)) {
+                if (((_j = tournament === null || tournament === void 0 ? void 0 : tournament.joined) === null || _j === void 0 ? void 0 : _j.length) < 4 || !(tournament === null || tournament === void 0 ? void 0 : tournament.joined)) {
                     yield model_1.default.joinTournament(user, room);
                     idtodata.set(socket.id, user);
                     localRoomUsers.set(socket.id, room);

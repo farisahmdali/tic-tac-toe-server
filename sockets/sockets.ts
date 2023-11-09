@@ -222,12 +222,14 @@ export default function handleSocket(socket: Socket) {
   socket.on("userExited", async (data) => {
     console.log("disconnect", socket.id);
     socket.to(localRoomUsers.get(socket.id)).emit("user-quit");
+    if(data){
 
-    UserToId.set(data, socket.id);
-    emailtoid.set(socket.id, data);
-
-    if (data) {
-      model.activeUser(data);
+      UserToId.set(data, socket.id);
+      emailtoid.set(socket.id, data);
+      
+      if (data) {
+        model.activeUser(data);
+      }
     }
 
     try {
@@ -238,7 +240,7 @@ export default function handleSocket(socket: Socket) {
         const user = idtodata.get(socket.id);
         console.log(user);
         await model.leftTournament(user, localRoomUsers.get(socket.id));
-        const index = roomMembers[localRoomUsers.get(socket.id)].indexOf(user);
+        const index = roomMembers[localRoomUsers.get(socket.id)]?.indexOf(user);
         if (index !== -1) {
           roomMembers[localRoomUsers.get(socket.id)].splice(index);
         }
